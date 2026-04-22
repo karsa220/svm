@@ -133,7 +133,6 @@ def process_rw07_08(df, wb):
 
     counts = defaultdict(int)
 
-    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
     df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
 
     for index, row in df_filtered.iterrows():
@@ -205,7 +204,6 @@ def process_rw09(df, wb):
 
     counts = defaultdict(int)
 
-    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
     df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
 
     for index, row in df_filtered.iterrows():
@@ -241,7 +239,6 @@ def process_rw13(df, wb):
     }
     counts = defaultdict(int)
 
-    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
     df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
 
     for index, row in df_filtered.iterrows():
@@ -326,8 +323,12 @@ def process_rw16_17(df, wb):
 
 # --- 【全新改版：补齐 RW20 第6行和第11行所有明细】 ---
 def process_rw20_series(df, wb):
+    # 安全获取必要的列
     col_post = next((c for c in df.columns if '聘任岗位' in str(c)), df.columns[17])
-    col_type = next((c for c in df.columns if '分类' in str(c)), df.columns[4])
+    
+    # 【核心修改区】：获取“聘用方式”列作为判断事业编制的唯一标准
+    col_employ_type = next((c for c in df.columns if '聘用方式' in str(c)), df.columns[3])
+    
     col_month = next((c for c in df.columns if '总月份数' in str(c)), df.columns[7])
     col_income = next((c for c in df.columns if '总收入3' in str(c)), df.columns[30])
 
@@ -343,7 +344,8 @@ def process_rw20_series(df, wb):
     if sheet_20:
         ws20 = wb[sheet_20]
 
-        is_career = df[col_type].astype(str).str.contains('事业', na=False)
+        # 【核心修改区】：全局依据“聘用方式 == 事业”来判断事业编制
+        is_career = df[col_employ_type].astype(str).str.strip() == '事业'
         df_career = df[is_career]
         df_other = df[~is_career]
 
@@ -416,7 +418,9 @@ def process_rw20_series(df, wb):
             total_inc = round(pd.to_numeric(subset_df[col_income], errors='coerce').fillna(0).sum() / 1000, 2)
             per_capita = round((total_inc * 1000 / avg_num), 2) if avg_num > 0 else 0
 
-            c_subset = subset_df[subset_df[col_type].astype(str).str.contains('事业', na=False)]
+            # 【核心修改区】：针对 RW20.1 的 F/G/H/I 列，基于 聘用方式 == 事业 筛选
+            c_subset = subset_df[subset_df[col_employ_type].astype(str).str.strip() == '事业']
+            
             c_months = pd.to_numeric(c_subset[col_month], errors='coerce').fillna(0).sum()
             c_avg_num = round(c_months / 12, 2)
             c_total_inc = round(pd.to_numeric(c_subset[col_income], errors='coerce').fillna(0).sum() / 1000, 2)
@@ -506,13 +510,11 @@ class App:
             process_rw09(df, wb)
             process_rw13(df, wb)
             process_rw16_17(df, wb)
-
-            # 【完美覆盖】执行最新版本的 RW20 & RW20.1 处理逻辑
             process_rw20_series(df, wb)
 
             wb.save(template_path)
             messagebox.showinfo("成功",
-                                f"✅ 所有报表处理完毕并保存至：\n{template_path}\n\n所有金额换算已全面替换为标准的四舍五入！")
+                                f"✅ 所有报表处理完毕并保存至：\n{template_path}\n\n已更新 RW20/RW20.1 中按“聘用方式=事业”的筛选条件！")
 
         except PermissionError:
             messagebox.showerror("错误", "保存失败：模板文件正在被其它程序（如Excel）占用，请关闭该文件后重试！")
