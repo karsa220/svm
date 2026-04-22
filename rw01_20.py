@@ -12,13 +12,14 @@ def process_rw01_02(df, wb):
     num_end = int(df['年末的人'].sum())
     num_avg = round(df['总月份数（正式职工年平均人数=总月份数/12）'].sum() / 12, 2)
 
-    basic_salary = int(df['基本工资'].sum() / 1000)
-    post_salary = int(df['岗位工资总'].sum() / 1000)
-    scale_salary = int(df['薪级工资总'].sum() / 1000)
-    perf_pay = int(df['绩效'].sum() / 1000)
-    nat_sub = int(df['国家补贴'].sum() / 1000)
-    reform_sub = int(df['改革性补贴3'].sum() / 1000)
-    tech_reward = int(df['酬金中科技成果转化'].sum() / 1000)
+    # 【修改】：全部改用 int(round(数值)) 实现真正的四舍五入，避免直接舍弃尾数
+    basic_salary = int(round(df['基本工资'].sum() / 1000))
+    post_salary = int(round(df['岗位工资总'].sum() / 1000))
+    scale_salary = int(round(df['薪级工资总'].sum() / 1000))
+    perf_pay = int(round(df['绩效'].sum() / 1000))
+    nat_sub = int(round(df['国家补贴'].sum() / 1000))
+    reform_sub = int(round(df['改革性补贴3'].sum() / 1000))
+    tech_reward = int(round(df['酬金中科技成果转化'].sum() / 1000))
 
     if 'RW01' in wb.sheetnames:
         ws1 = wb['RW01']
@@ -80,12 +81,13 @@ def process_rw03_04(df, wb):
         num_end = int(group['年末的人'].sum())
         num_avg = round(group['总月份数（正式职工年平均人数=总月份数/12）'].sum() / 12, 2)
 
-        post_salary = int(group['岗位工资总'].sum() / 1000)
-        scale_salary = int(group['薪级工资总'].sum() / 1000)
-        perf_pay = int(group['绩效'].sum() / 1000)
-        nat_sub = int(group['国家补贴'].sum() / 1000)
-        reform_sub = int(group['改革性补贴3'].sum() / 1000)
-        tech_reward = int(group['酬金中科技成果转化'].sum() / 1000)
+        # 【修改】：全部改用 int(round(数值)) 实现真正的四舍五入
+        post_salary = int(round(group['岗位工资总'].sum() / 1000))
+        scale_salary = int(round(group['薪级工资总'].sum() / 1000))
+        perf_pay = int(round(group['绩效'].sum() / 1000))
+        nat_sub = int(round(group['国家补贴'].sum() / 1000))
+        reform_sub = int(round(group['改革性补贴3'].sum() / 1000))
+        tech_reward = int(round(group['酬金中科技成果转化'].sum() / 1000))
 
         if num_end == 0 and num_avg == 0 and post_salary == 0:
             continue
@@ -227,9 +229,6 @@ def process_rw09(df, wb):
             wb[sheet].cell(row=r, column=c, value=val)
 
 
-
-
-
 def process_rw13(df, wb):
     worker_mapping = {
         '工勤一级': 12, '工勤二级': 13, '工勤三级': 14,
@@ -238,31 +237,24 @@ def process_rw13(df, wb):
     counts = defaultdict(int)
 
     for index, row in df.iterrows():
-        # 【修复1】：绝对不要用 iloc[17]！统一改成通过列名获取数据
-        # 假设你的岗位列名叫 '聘任岗位'，如果 HR 的表头叫别的，请在这里修改
         pos_raw = row.get('聘任岗位')
         scale_raw = row.get('薪级')
 
         if pd.isna(pos_raw) or pd.isna(scale_raw):
             continue
 
-        # 【修复2】：强力清理文字里的空格，避免 "工勤一级 " 这种脏数据
         pos = str(pos_raw).strip()
 
         if pos not in worker_mapping:
             continue
 
-        # 【修复3】：极其安全的数值转换
         try:
-            # 先转 float 再转 int，这样即使 Excel 里是 "15.0" 或 " 15 " 都能完美转换为 15
             scale = int(float(scale_raw))
         except (ValueError, TypeError):
-            # 如果 HR 这一栏填了 "无" 或者其他乱七八糟的汉字，直接跳过，不让程序崩溃
             continue
 
         row_idx = worker_mapping[pos]
 
-        # 核心坐标计算逻辑（你的原始逻辑很棒，保持不变）
         if 1 <= scale <= 20:
             sheet_name = 'RW13'
             col_idx = scale + 3
@@ -275,13 +267,12 @@ def process_rw13(df, wb):
         else:
             continue
 
-        # 计入统计
         counts[(sheet_name, row_idx, col_idx)] += 1
 
-    # 写入 Excel
     for (sheet, r, c), val in counts.items():
         if val > 0 and sheet in wb.sheetnames:
             wb[sheet].cell(row=r, column=c, value=val)
+
 
 def process_rw16_17(df, wb):
     sheet_16 = next((s for s in wb.sheetnames if 'RW16' in s), None)
@@ -300,7 +291,9 @@ def process_rw16_17(df, wb):
 
         num_end_16 = int(pd.to_numeric(df_rw16[col_end], errors='coerce').fillna(0).sum())
         num_avg_16 = round(pd.to_numeric(df_rw16[col_month], errors='coerce').fillna(0).sum() / 12, 2)
-        salary_total_16 = int(pd.to_numeric(df_rw16[col_income], errors='coerce').fillna(0).sum() / 1000)
+        
+        # 【修改】：加入 round 实现四舍五入
+        salary_total_16 = int(round(pd.to_numeric(df_rw16[col_income], errors='coerce').fillna(0).sum() / 1000))
 
         for r in [17]:
             ws16.cell(row=r, column=4, value=num_end_16)
@@ -315,7 +308,9 @@ def process_rw16_17(df, wb):
         col_month = next((c for c in df.columns if '总月份' in str(c) and '事业' not in str(c)), df.columns[7])
 
         num_avg_17 = round(pd.to_numeric(df_rw17[col_month], errors='coerce').fillna(0).sum() / 12, 2)
-        tech_income_17 = int(pd.to_numeric(df_rw17[col_K], errors='coerce').fillna(0).sum() / 1000)
+        
+        # 【修改】：加入 round 实现四舍五入
+        tech_income_17 = int(round(pd.to_numeric(df_rw17[col_K], errors='coerce').fillna(0).sum() / 1000))
 
         for r in [13, 21]:
             ws17.cell(row=r, column=5, value=1)
@@ -351,6 +346,7 @@ def process_rw20_series(df, wb):
             return pd.to_numeric(data[col], errors='coerce').fillna(0).sum()
 
         def get_sum_k(data, col):
+            # 这里本身已经使用了 round 保留2位小数，所以本身就是四舍五入的，不需要修改
             return round(get_sum_yuan(data, col) / 1000, 2)
 
         # 1. 基础总人数计算
@@ -412,6 +408,7 @@ def process_rw20_series(df, wb):
 
             total_months = pd.to_numeric(subset_df[col_month], errors='coerce').fillna(0).sum()
             avg_num = round(total_months / 12, 2)
+            # 这里的数值也是通过 round 处理的，天生自带四舍五入
             total_inc = round(pd.to_numeric(subset_df[col_income], errors='coerce').fillna(0).sum() / 1000, 2)
             per_capita = round((total_inc * 1000 / avg_num), 2) if avg_num > 0 else 0
 
@@ -511,7 +508,7 @@ class App:
 
             wb.save(template_path)
             messagebox.showinfo("成功",
-                                f"✅ 所有报表处理完毕并保存至：\n{template_path}\n\nRW20 的人均明细及千元明细已全部补齐！")
+                                f"✅ 所有报表处理完毕并保存至：\n{template_path}\n\n所有金额换算已全面替换为标准的四舍五入！")
 
         except PermissionError:
             messagebox.showerror("错误", "保存失败：模板文件正在被其它程序（如Excel）占用，请关闭该文件后重试！")
