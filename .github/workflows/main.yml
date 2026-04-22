@@ -30,7 +30,7 @@ jobs:
       # --windowed 表示隐藏背后的黑色控制台窗口（给 Tkinter 用的）
       # --name 指定最终生成的 exe 名字
       run: |
-        pyinstaller --noconfirm --onefile --windowed --name "rw01_20" main.py
+        pyinstaller --noconfirm --onefile --windowed --name "rw01_20" rw01_20.py
 
     - name: 上传打包好的 EXE 供下载
       uses: actions/upload-artifact@v4
