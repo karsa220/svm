@@ -12,7 +12,6 @@ def process_rw01_02(df, wb):
     num_end = int(df['年末的人'].sum())
     num_avg = round(df['总月份数（正式职工年平均人数=总月份数/12）'].sum() / 12, 2)
 
-    # 【修改】：全部改用 int(round(数值)) 实现真正的四舍五入，避免直接舍弃尾数
     basic_salary = int(round(df['基本工资'].sum() / 1000))
     post_salary = int(round(df['岗位工资总'].sum() / 1000))
     scale_salary = int(round(df['薪级工资总'].sum() / 1000))
@@ -81,7 +80,6 @@ def process_rw03_04(df, wb):
         num_end = int(group['年末的人'].sum())
         num_avg = round(group['总月份数（正式职工年平均人数=总月份数/12）'].sum() / 12, 2)
 
-        # 【修改】：全部改用 int(round(数值)) 实现真正的四舍五入
         post_salary = int(round(group['岗位工资总'].sum() / 1000))
         scale_salary = int(round(group['薪级工资总'].sum() / 1000))
         perf_pay = int(round(group['绩效'].sum() / 1000))
@@ -135,7 +133,10 @@ def process_rw07_08(df, wb):
 
     counts = defaultdict(int)
 
-    for index, row in df.iterrows():
+    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
+    df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
+
+    for index, row in df_filtered.iterrows():
         pos = row.iloc[17]
         scale = row['薪级']
 
@@ -203,7 +204,11 @@ def process_rw09(df, wb):
     }
 
     counts = defaultdict(int)
-    for index, row in df.iterrows():
+
+    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
+    df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
+
+    for index, row in df_filtered.iterrows():
         pos = row.iloc[17]
         work_year_cat = row.iloc[16]
         tenure_cat = row.iloc[19]
@@ -236,7 +241,10 @@ def process_rw13(df, wb):
     }
     counts = defaultdict(int)
 
-    for index, row in df.iterrows():
+    # 【新增限制】：只筛选年末的人为1的数据参与人数统计
+    df_filtered = df[pd.to_numeric(df['年末的人'], errors='coerce').fillna(0) == 1]
+
+    for index, row in df_filtered.iterrows():
         pos_raw = row.get('聘任岗位')
         scale_raw = row.get('薪级')
 
@@ -291,8 +299,7 @@ def process_rw16_17(df, wb):
 
         num_end_16 = int(pd.to_numeric(df_rw16[col_end], errors='coerce').fillna(0).sum())
         num_avg_16 = round(pd.to_numeric(df_rw16[col_month], errors='coerce').fillna(0).sum() / 12, 2)
-        
-        # 【修改】：加入 round 实现四舍五入
+
         salary_total_16 = int(round(pd.to_numeric(df_rw16[col_income], errors='coerce').fillna(0).sum() / 1000))
 
         for r in [17]:
@@ -308,8 +315,7 @@ def process_rw16_17(df, wb):
         col_month = next((c for c in df.columns if '总月份' in str(c) and '事业' not in str(c)), df.columns[7])
 
         num_avg_17 = round(pd.to_numeric(df_rw17[col_month], errors='coerce').fillna(0).sum() / 12, 2)
-        
-        # 【修改】：加入 round 实现四舍五入
+
         tech_income_17 = int(round(pd.to_numeric(df_rw17[col_K], errors='coerce').fillna(0).sum() / 1000))
 
         for r in [13, 21]:
@@ -346,7 +352,6 @@ def process_rw20_series(df, wb):
             return pd.to_numeric(data[col], errors='coerce').fillna(0).sum()
 
         def get_sum_k(data, col):
-            # 这里本身已经使用了 round 保留2位小数，所以本身就是四舍五入的，不需要修改
             return round(get_sum_yuan(data, col) / 1000, 2)
 
         # 1. 基础总人数计算
@@ -408,7 +413,6 @@ def process_rw20_series(df, wb):
 
             total_months = pd.to_numeric(subset_df[col_month], errors='coerce').fillna(0).sum()
             avg_num = round(total_months / 12, 2)
-            # 这里的数值也是通过 round 处理的，天生自带四舍五入
             total_inc = round(pd.to_numeric(subset_df[col_income], errors='coerce').fillna(0).sum() / 1000, 2)
             per_capita = round((total_inc * 1000 / avg_num), 2) if avg_num > 0 else 0
 
