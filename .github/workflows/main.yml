@@ -1,0 +1,39 @@
+name: Build Windows EXE
+
+# 触发条件：当你提交代码，或者手动点击运行按钮时触发
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # 分配一台免费的最新版 Windows 服务器
+    runs-on: windows-latest
+
+    steps:
+    - name: 获取代码
+      uses: actions/checkout@v4
+
+    - name: 配置 Python 3.10 环境
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: 安装依赖库
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas openpyxl pyinstaller
+
+    - name: 使用 PyInstaller 打包
+      # --onefile 表示打包成单个 exe 文件
+      # --windowed 表示隐藏背后的黑色控制台窗口（给 Tkinter 用的）
+      # --name 指定最终生成的 exe 名字
+      run: |
+        pyinstaller --noconfirm --onefile --windowed --name "RW表格填报汇总工具" main.py
+
+    - name: 上传打包好的 EXE 供下载
+      uses: actions/upload-artifact@v4
+      with:
+        name: RW表格填报汇总工具-Windows版
+        path: dist/*.exe
